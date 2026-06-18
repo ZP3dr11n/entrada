@@ -424,7 +424,7 @@
         // ==========================================
         const tituloCartao = `ID: ${valId} - Orç: ${valOrcamento} - Agend: ${valAgendamento}`;
         
-        const descricaoCartao = `**Cliente:** ${valCliente}\n**Data de entrada:** ${valDataEntrada}\n**Data da aprovação:** \n**Data de Requisição:** \n**Data de Conclusão:** \n\n**LISTA DE EQUIPAMENTOS DA ENTRADA:**${descricaoTrelloEquipamentos}`;
+        const descricaoCartao = `**Cliente:** ${valCliente}\n**Data de Entrada:** ${valDataEntrada}\n**Data do Relatório:** \n**Data da Aprovação:** \n**Data de Requisição:** \n**Data de Conclusão:** \n\n**LISTA DE EQUIPAMENTOS DA ENTRADA:**${descricaoTrelloEquipamentos}`;
 
         const urlTrello = `https://api.trello.com/1/cards?idList=${TRELLO_ID_LIST}&key=${TRELLO_KEY}&token=${TRELLO_TOKEN}&name=${encodeURIComponent(tituloCartao)}&desc=${encodeURIComponent(descricaoCartao)}`;
 
