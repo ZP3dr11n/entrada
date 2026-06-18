@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrada de Equipamentos - Assistência</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    /* --- ESTILO GERAL DO FORMULÁRIO --- */
+    :root {
+      --cor-primaria: #002060;
+      --cor-fundo: #8ad6cf;
+      --cor-card: #ffffff;
+      --cor-borda: #dee2e6;
+      --cor-sombra: rgba(0, 0, 0, 0.1);
+      --cor-texto: #495057;
+      --cor-titulo: #212529;
+      --cor-sucesso: #28a745;
+      --cor-sucesso-hover: #218838;
+      --cor-perigo: #dc3545;
+      --cor-perigo-hover: #c82333;
+    }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--cor-fundo);
+      color: var(--cor-texto);
+    }
+
+    h1 { text-align: center; color: var(--cor-titulo); margin-bottom: 5px;}
+    
+    .status-bd { 
+      text-align: center; 
+      font-size: 12px; 
+      font-weight: bold; 
+      margin-bottom: 20px; 
+      color: #002060; 
+    }
+
+    .form-section {
+      border: 1px solid var(--cor-borda); 
+      padding: 20px; 
+      margin: 20px auto; 
+      border-radius: 8px; 
+      background-color: var(--cor-card);
+      box-shadow: 0 4px 8px var(--cor-sombra);
+      max-width: 900px;
+    }
+
+    .form-section h2 {
+      margin-top: 0;
+      border-bottom: 2px solid var(--cor-primaria);
+      padding-bottom: 10px;
+      color: var(--cor-primaria);
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-row { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      gap: 15px; 
+      margin-bottom: 15px; 
+    }
+    
+    .form-group { margin-bottom: 10px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    
+    label { 
+      display: block; 
+      font-weight: bold; 
+      margin-bottom: 5px; 
+      color: var(--cor-titulo); 
+      font-size: 14px;
+    }
+    
+    input[type="text"], input[type="date"], input[type="number"], textarea {
+      width: 100%; 
+      padding: 10px; 
+      border-radius: 4px; 
+      border: 1px solid var(--cor-borda); 
+      font-size: 14px; 
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+    input:focus, textarea:focus { outline: none; border-color: var(--cor-primaria); }
+
+    /* ESTILOS DOS ITENS DINÂMICOS DE EQUIPAMENTO */
+    .item-equipamento {
+      background-color: #f8f9fa;
+      border: 1px solid var(--cor-borda);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      position: relative;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    
+    .item-equipamento.destaque-sucesso {
+      background-color: #e8f5e9;
+      border-color: var(--cor-sucesso);
+    }
+
+    .item-equipamento-header {
+      font-weight: bold;
+      color: var(--cor-primaria);
+      margin-bottom: 10px;
+      border-bottom: 1px dashed var(--cor-borda);
+      padding-bottom: 5px;
+    }
+
+    .btn-adicionar {
+      background-color: var(--cor-primaria);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    .btn-adicionar:hover { background-color: #001540; }
+
+    .btn-remover {
+      background-color: var(--cor-perigo);
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      position: absolute;
+      top: 12px;
+      right: 15px;
+    }
+    .btn-remover:hover { background-color: var(--cor-perigo-hover); }
+
+    /* BOTÃO PRINCIPAL */
+    .btn-principal { 
+      width: 100%; 
+      padding: 15px; 
+      font-size: 18px; 
+      font-weight: bold;
+      background-color: var(--cor-sucesso); 
+      color: white; 
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px; 
+      transition: background-color 0.2s;
+    }
+    .btn-principal:hover { background-color: var(--cor-sucesso-hover); }
+    .btn-principal:disabled { background-color: #6c757d; cursor: not-allowed; }
+    
+    .action-container { max-width: 900px; margin: 0 auto; }
+
+    #statusMensagem {
+        text-align: center;
+        font-weight: bold;
+        margin-top: 15px;
+        font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Registro de Entrada de Equipamentos</h1>
+  <div class="status-bd" id="statusBD">⏳ Conectando ao Banco de Dados (datashock.ods)...</div>
+
+  <form id="entradaForm">
+    <div class="form-section">
+      <h2>Dados do Atendimento</h2>
+      <div class="form-row">
+        <div class="form-group">
+          <label>ID do Sistema:</label>
+          <input type="text" id="idSistema" required placeholder="Ex: 57949">
+        </div>
+        <div class="form-group">
+          <label>Cliente:</label>
+          <input type="text" id="cliente" required placeholder="Nome do Cliente">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Orçamento:</label>
+          <input type="text" id="orcamento" required placeholder="Nº do Orçamento ou Status">
+        </div>
+        <div class="form-group">
+          <label>Agendamento:</label>
+          <input type="number" id="agendamento" required placeholder="Número do agendamento">
+        </div>
+        <div class="form-group">
+          <label>Data de Entrada:</label>
+          <input type="date" id="dataEntrada" required>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2>
+        Equipamentos Recebidos
+        <button type="button" class="btn-adicionar" onclick="adicionarEquipamento()">+ Adicionar Equipamento</button>
+      </h2>
+      
+      <div id="containerEquipamentos"></div>
+      
+    </div>
+
+    <div class="action-container">
+      <button type="submit" class="btn-principal" id="btnGerar">Registrar Entrada no Sistema</button>
+      <div id="statusMensagem"></div>
+    </div>
+  </form>
+
+  <script>
+    // ==========================================
+    // CONFIGURAÇÕES DE API DEFINITIVAS
+    // ==========================================
+    const GOOGLE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbz1xdvf4UvsRQRowPpIthRzhTFKGN_tAWiqg-Nnlmc2eLT7G5dwJnnrCj1aMYHNMGzcmQ/exec'; 
+
+    const TRELLO_KEY = '9e8574760aa9dc5b28af2a20ed4e131c';
+    const TRELLO_TOKEN = 'ATTAc2877eec188eaa12875d83069864f17026f6330eaeaa3da937181accbbdb9008848DC1CE';
+    const TRELLO_ID_LIST = '6a3342246b70ca024a930cfd';
+
+    let equipamentoCount = 0;
+    let bancoXML = {};
+
+    // ==========================================
+    // INICIALIZAÇÃO E CARREGAMENTO DO ODS
+    // ==========================================
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById('dataEntrada').value = new Date().toISOString().split('T')[0];
+      carregarBancoDeDadosODS();
+      adicionarEquipamento(); // Adiciona o primeiro bloco obrigatório
+    });
+
+    async function carregarBancoDeDadosODS() {
+      const statusElement = document.getElementById('statusBD');
+      try {
+        const response = await fetch('datashock.ods');
+        if (!response.ok) throw new Error("Arquivo não encontrado no servidor.");
+        
+        // Lê o arquivo como buffer de bytes
+        const arrayBuffer = await response.arrayBuffer();
+        const data = new Uint8Array(arrayBuffer);
+        
+        // O SheetJS processa o arquivo ODS
+        const workbook = XLSX.read(data, {type: 'array'});
+        const primeiraAba = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[primeiraAba];
+        
+        // Transforma as linhas e colunas em matriz (array de arrays)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+        
+        let qtdCarregada = 0;
+
+        // Inicia do índice 1 se a linha 0 for o cabeçalho ("Código", "Descrição")
+        // Se não tiver cabeçalho no seu arquivo, mude o let i = 1 para let i = 0
+        for(let i = 1; i < jsonData.length; i++) {
+          let linha = jsonData[i];
+          
+          // Confirma se a Coluna A (0) e Coluna B (1) existem
+          if(linha && linha[0] && linha[1]) {
+            let cod = linha[0].toString().trim();
+            let nome = linha[1].toString().trim();
+            
+            // Salva com 6 dígitos (Ex: '123' vira '000123') e versão normal
+            bancoXML[cod.padStart(6, '0')] = nome;
+            bancoXML[cod] = nome;
+            qtdCarregada++;
+          }
+        }
+        
+        statusElement.textContent = `✅ Banco de Dados Carregado (${qtdCarregada} equipamentos prontos)`;
+        statusElement.style.color = 'green';
+      } catch (error) {
+        console.warn("Aviso:", error);
+        statusElement.textContent = "⚠️ Não foi possível carregar 'datashock.ods'. O preenchimento manual continua funcionando.";
+        statusElement.style.color = '#dc3545';
+      }
+    }
+
+    // ==========================================
+    // LÓGICA DE MÚLTIPLOS EQUIPAMENTOS E AUTOCOMPLETAR
+    // ==========================================
+    function adicionarEquipamento() {
+      equipamentoCount++;
+      const container = document.getElementById('containerEquipamentos');
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'item-equipamento';
+      itemDiv.id = `equipamentoRow_${equipamentoCount}`;
+
+      const btnRemoverHTML = equipamentoCount > 1 
+        ? `<button type="button" class="btn-remover" onclick="removerEquipamento(${equipamentoCount})">Excluir</button>` 
+        : '';
+
+      itemDiv.innerHTML = `
+        <div class="item-equipamento-header">Equipamento #${equipamentoCount}</div>
+        ${btnRemoverHTML}
+        <div class="form-row">
+          <div class="form-group">
+            <label>Código do Equipamento:</label>
+            <input type="text" class="item-cod" required placeholder="Digite e aperte Tab..." onchange="buscarEquipamentoXML(this, ${equipamentoCount})">
+          </div>
+          <div class="form-group">
+            <label>Equipamento:</label>
+            <input type="text" class="item-eqp" required placeholder="Nome preenchido automaticamente">
+          </div>
+          <div class="form-group">
+            <label>Quantidade:</label>
+            <input type="number" class="item-qtd" min="1" value="1" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label>Reclame do Cliente (Defeito relatado neste equipamento):</label>
+            <textarea class="item-rec" required placeholder="Descreva detalhadamente o problema..."></textarea>
+          </div>
+        </div>
+      `;
+      container.appendChild(itemDiv);
+    }
+
+    function removerEquipamento(id) {
+      const itemRow = document.getElementById(`equipamentoRow_${id}`);
+      if (itemRow) itemRow.remove();
+    }
+
+    function buscarEquipamentoXML(inputElement, id) {
+      let codDigitado = inputElement.value.trim();
+      const linhaHTML = document.getElementById(`equipamentoRow_${id}`);
+      
+      if (!linhaHTML || !codDigitado) return;
+
+      // Completa com zeros à esquerda para ter 6 dígitos (Padrão visual industrial)
+      codDigitado = codDigitado.padStart(6, '0');
+      inputElement.value = codDigitado;
+
+      // Verifica se o código existe no arquivo lido na Coluna A
+      const nomeEncontrado = bancoXML[codDigitado];
+      
+      if (nomeEncontrado) {
+        linhaHTML.querySelector('.item-eqp').value = nomeEncontrado;
+        
+        // Efeito visual rápido de sucesso
+        linhaHTML.classList.add('destaque-sucesso');
+        setTimeout(() => linhaHTML.classList.remove('destaque-sucesso'), 1000);
+      }
+    }
+
+    // ==========================================
+    // ENVIO DO FORMULÁRIO (GOOGLE SHEETS E TRELLO)
+    // ==========================================
+    document.getElementById('entradaForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const container = document.getElementById('containerEquipamentos');
+      if (container.children.length === 0) {
+        alert("Adicione ao menos um equipamento antes de registrar.");
+        return;
+      }
+
+      const btn = document.getElementById('btnGerar');
+      const statusMsg = document.getElementById('statusMensagem');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Processando e Enviando Dados...';
+      statusMsg.textContent = '';
+
+      // Coleta dados base que se repetem
+      const valId = document.getElementById('idSistema').value.trim();
+      const valCliente = document.getElementById('cliente').value.trim();
+      const valOrcamento = document.getElementById('orcamento').value.trim();
+      const valAgendamento = document.getElementById('agendamento').value.trim();
+      const valDataEntrada = document.getElementById('dataEntrada').value.split('-').reverse().join('/');
+
+      let descricaoTrelloEquipamentos = "";
+      const linhasEquipamento = document.querySelectorAll('.item-equipamento');
+
+      try {
+        // ==========================================
+        // ETAPA 1: ENVIAR PARA O GOOGLE SHEETS EM LINHAS SEPARADAS
+        // ==========================================
+        for (let i = 0; i < linhasEquipamento.length; i++) {
+            let linha = linhasEquipamento[i];
+            let eqp = linha.querySelector('.item-eqp').value.trim();
+            let cod = linha.querySelector('.item-cod').value.trim();
+            let qtd = linha.querySelector('.item-qtd').value;
+            let rec = linha.querySelector('.item-rec').value.trim();
+
+            let dadosLinhaPlanilha = {
+                id: valId,
+                cliente: valCliente,
+                orcamento: valOrcamento,
+                agendamento: valAgendamento,
+                dataEntrada: valDataEntrada,
+                equipamento: eqp,
+                codigo: cod,
+                quantidade: qtd,
+                reclame: rec
+            };
+
+            await fetch(GOOGLE_WEBAPP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dadosLinhaPlanilha)
+            });
+
+            descricaoTrelloEquipamentos += `\n---\n**Equipamento ${i + 1}:** ${eqp}\n**Código:** ${cod} | **Quantidade:** ${qtd}\n**Reclame:** ${rec}\n`;
+        }
+
+        // ==========================================
+        // ETAPA 2: CRIAR UM ÚNICO CARTÃO NO TRELLO
+        // ==========================================
+        const tituloCartao = `ID: ${valId} - Orç: ${valOrcamento} - Agend: ${valAgendamento}`;
+        
+        const descricaoCartao = `**Cliente:** ${valCliente}\n**Data de entrada:** ${valDataEntrada}\n**Data da aprovação:** \n**Data de Requisição:** \n**Data de Conclusão:** \n\n**LISTA DE EQUIPAMENTOS DA ENTRADA:**${descricaoTrelloEquipamentos}`;
+
+        const urlTrello = `https://api.trello.com/1/cards?idList=${TRELLO_ID_LIST}&key=${TRELLO_KEY}&token=${TRELLO_TOKEN}&name=${encodeURIComponent(tituloCartao)}&desc=${encodeURIComponent(descricaoCartao)}`;
+
+        const trelloResponse = await fetch(urlTrello, { method: 'POST' });
+
+        if (!trelloResponse.ok) {
+            throw new Error('Falha ao criar cartão no Trello.');
+        }
+
+        // Sucesso
+        statusMsg.style.color = 'green';
+        statusMsg.textContent = '✅ Sucesso! Dados lançados na Planilha e Cartão criado no Trello.';
+        
+        // Limpa o formulário e recria o primeiro equipamento
+        document.getElementById('entradaForm').reset();
+        document.getElementById('dataEntrada').value = new Date().toISOString().split('T')[0];
+        document.getElementById('containerEquipamentos').innerHTML = '';
+        equipamentoCount = 0;
+        adicionarEquipamento();
+
+      } catch (error) {
+        console.error("Erro na integração:", error);
+        statusMsg.style.color = 'red';
+        statusMsg.textContent = '❌ Ocorreu um erro durante o envio. Verifique o console ou as chaves da API.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Registrar Entrada no Sistema';
+      }
+    });
+  </script>
+</body>
+</html>
